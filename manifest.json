@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Schwab Tax Lot Extractor",
+  "version": "1.0.0",
+  "description": "Extract tax lot details from Charles Schwab positions page",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://client.schwab.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://client.schwab.com/app/accounts/positions/*"],
+      "js": [
+        "lib/utils.js",
+        "lib/extractor.js",
+        "lib/storage.js",
+        "lib/exporter.js",
+        "content.js"
+      ],
+      "css": ["content.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

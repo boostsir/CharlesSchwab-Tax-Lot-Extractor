@@ -1,0 +1,73 @@
+/* Content script styles - Isolated and namespaced */
+
+/* Overlay styles for content script - Highly specific to avoid conflicts */
+.schwab-extractor-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  z-index: 2147483647 !important; /* Maximum z-index */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
+}
+
+.schwab-extractor-progress {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 4px !important;
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  z-index: 2147483646 !important;
+}
+
+.schwab-extractor-progress-bar {
+  height: 100% !important;
+  background-color: #3b82f6 !important;
+  transition: width 0.3s ease !important;
+  width: 0% !important;
+}
+
+.schwab-extractor-status {
+  background-color: white !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+  max-width: 400px !important;
+  text-align: center !important;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
+  color: #1f2937 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.schwab-extractor-status h3 {
+  margin: 0 0 1rem 0 !important;
+  font-size: 1.125rem !important;
+  font-weight: bold !important;
+  color: #1f2937 !important;
+  font-family: inherit !important;
+}
+
+.schwab-extractor-status p {
+  margin: 0 0 0.5rem 0 !important;
+  color: #4b5563 !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+}
+
+.schwab-extractor-status p:last-child {
+  margin: 0 !important;
+  color: #6b7280 !important;
+  font-size: 0.875rem !important;
+}
+
+.schwab-extractor-highlight {
+  outline: 3px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}

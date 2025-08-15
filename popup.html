@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Lot Extractor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="w-32 h-50 p-0 m-0">
+  <div class="w-full p-4 bg-white">
+    <h1 class="text-lg font-bold mb-4 text-gray-800">Tax Lot Extractor</h1>
+
+    <!-- Status Section -->
+    <div class="mb-4">
+      <div class="text-sm text-gray-600">
+        Status: <span id="status" class="font-medium">Ready</span>
+      </div>
+      <div class="text-sm text-gray-600">
+        Progress: <span id="progress" class="font-medium">0/0</span>
+      </div>
+    </div>
+
+    <!-- Control Buttons -->
+    <button
+      id="startBtn"
+      class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded mb-2 text-sm transition-colors"
+    >
+      Start Extraction
+    </button>
+    <button
+      id="stopBtn"
+      class="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded mb-2 text-sm transition-colors"
+      disabled
+    >
+      Stop
+    </button>
+
+    <!-- Export Section -->
+    <div class="border-t pt-2 mt-2">
+      <button
+        id="exportJson"
+        class="w-full bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded text-sm mb-1 transition-colors"
+        disabled
+      >
+        Export as JSON
+      </button>
+      <button
+        id="exportCsv"
+        class="w-full bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded text-sm transition-colors"
+        disabled
+      >
+        Export as CSV
+      </button>
+    </div>
+
+    <!-- Error Display -->
+    <div id="errorDisplay" class="mt-2 text-xs text-red-600 hidden">
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
