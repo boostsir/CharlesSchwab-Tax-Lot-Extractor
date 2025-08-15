@@ -1,4 +1,4 @@
-# Schwab Tax Lot Extractor - Chrome Extension
+# Charles Schwab Tax Lot Extractor - Chrome Extension
 
 A Chrome Extension that automates the extraction of tax lot data from Charles Schwab's positions page, built following Test-Driven Development (TDD) principles.
 
@@ -14,9 +14,11 @@ A Chrome Extension that automates the extraction of tax lot data from Charles Sc
 ## Installation
 
 ### From Chrome Web Store
-*Coming soon - submit to Chrome Web Store using the built package*
+
+_Coming soon - submit to Chrome Web Store using the built package_
 
 ### For Developers
+
 1. Clone or download this repository
 2. Run `npm run build` to create the distribution package
 3. Open Chrome and navigate to `chrome://extensions/`
@@ -89,6 +91,7 @@ npm run build              # Create dist/ folder and .zip file for Chrome Web St
 ```
 
 This creates:
+
 - `dist/` folder with all extension files ready for development
 - `schwab-tax-lot-extractor-v{version}.zip` ready for Chrome Web Store upload
 
@@ -103,6 +106,7 @@ npm run test:coverage      # Run tests with coverage report
 ### Test Coverage
 
 The project maintains 80%+ test coverage across all modules:
+
 - ✅ 52 passing tests
 - ✅ Utils, Extractor, Storage, and Exporter modules fully tested
 - ✅ TDD approach followed throughout development
@@ -157,6 +161,7 @@ The extension includes automatic retry logic and can resume from where it left o
 ## Development Notes
 
 This extension was built using:
+
 - **Pure JavaScript** (no TypeScript or frameworks)
 - **TDD methodology** (tests written before implementation)
 - **Vanilla DOM APIs** for maximum compatibility

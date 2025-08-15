@@ -1,4 +1,4 @@
-# Schwab Tax Lot Extractor - Chrome Extension Project Plan
+# Charles Schwab Tax Lot Extractor - Chrome Extension Project Plan
 
 ## Project Overview
 

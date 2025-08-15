@@ -1,16 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Schwab Tax Lot Extractor",
+  "name": "Charles Schwab Tax Lot Extractor",
   "version": "1.0.0",
-  "description": "Extract tax lot details from Charles Schwab positions page",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting"
-  ],
-  "host_permissions": [
-    "*://client.schwab.com/*"
-  ],
+  "description": "⚡ Automate Schwab tax lot extraction. Export cost basis, gain/loss, and holding period data for all investments in CSV or JSON",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["*://client.schwab.com/*"],
   "background": {
     "service_worker": "background.js"
   },
