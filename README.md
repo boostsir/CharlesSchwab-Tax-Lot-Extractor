@@ -15,7 +15,7 @@ A Chrome Extension that automates the extraction of tax lot data from Charles Sc
 
 ### From Chrome Web Store
 
-_Coming soon - submit to Chrome Web Store using the built package_
+[**🚀 Install from Chrome Web Store**](https://chromewebstore.google.com/detail/nfngfaakmkihccflfeikhdogangajljc)
 
 ### For Developers
 
