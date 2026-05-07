@@ -71,7 +71,7 @@ async function startExtraction() {
       return;
     }
 
-    // Find all Next Steps buttons
+    // Find all Next Steps buttons to get an initial count
     const buttons = findNextStepButtons();
     log(`Found ${buttons.length} Next Steps buttons`);
 
@@ -93,20 +93,43 @@ async function startExtraction() {
     // Create overlay
     createOverlay();
 
-    // Start processing
+    // Start processing - no longer passes the buttons array
     sendProgressUpdate("Starting extraction...", 0, buttons.length);
-    processNextButton(buttons);
+    processNextButton();
   } catch (error) {
     log("Error starting extraction:", error);
     sendError("Failed to start extraction: " + error.message);
   }
 }
 
-async function processNextButton(buttons) {
-  if (
-    !extractionState.isRunning ||
-    extractionState.currentIndex >= buttons.length
-  ) {
+// FIX: Re-queries the live DOM at the start of every iteration so stale
+// references after a Schwab page re-render can never cause failures.
+async function processNextButton() {
+  if (!extractionState.isRunning) {
+    await completeExtraction();
+    return;
+  }
+
+  // Always fetch a fresh list of buttons from the current DOM.
+  // After a LaunchDarkly/Angular re-render the old
+  // NodeList references are detached, but a fresh querySelectorAll gives us
+  // live elements that actually respond to .click().
+  const buttons = findNextStepButtons();
+
+  if (buttons.length === 0) {
+    // Page may still be re-rendering — wait and try again once
+    log("No buttons found — waiting for page to stabilize...");
+    await delay(2000);
+    setTimeout(() => processNextButton(), 1000);
+    return;
+  }
+
+  // Keep totalPositions in sync with the live DOM (re-render can shift counts)
+  if (extractionState.totalPositions === 0) {
+    extractionState.totalPositions = buttons.length;
+  }
+
+  if (extractionState.currentIndex >= buttons.length) {
     await completeExtraction();
     return;
   }
@@ -122,6 +145,8 @@ async function processNextButton(buttons) {
 
   try {
     const result = await withRetry(async () => {
+      // clickLotDetails now re-queries the button internally on each attempt,
+      // and throws (rather than returning failure) so withRetry can retry.
       return await clickLotDetails(button, extractionState.processedButtons);
     });
 
@@ -135,19 +160,16 @@ async function processNextButton(buttons) {
       log(
         `Successfully extracted ${result.lots.length} lots for ${result.symbol}`
       );
-    } else if (!result.processed) {
-      // Add to errors if it wasn't already processed
-      extractionState.errors.push({
-        timestamp: new Date().toISOString(),
-        accountId: result.accountId || "unknown",
-        symbol: result.symbol || "unknown",
-        error: "Failed to extract lot details",
-      });
+    } else if (result.processed && !result.success) {
+      // Was already processed in a prior run — skip silently
     }
   } catch (error) {
-    log(`Error processing button ${currentPosition}:`, error);
-    const symbol = getSymbolFromRow(button);
-    const accountId = getAccountIdFromElement(button);
+    log(`Error processing button ${currentPosition} after all retries:`, error);
+    // Attempt to get symbol/account from the fresh DOM for the error record
+    const freshButtons = findNextStepButtons();
+    const freshButton = freshButtons[extractionState.currentIndex];
+    const symbol = freshButton ? getSymbolFromRow(freshButton) : getSymbolFromRow(button);
+    const accountId = freshButton ? getAccountIdFromElement(freshButton) : getAccountIdFromElement(button);
 
     extractionState.errors.push({
       timestamp: new Date().toISOString(),
@@ -157,8 +179,8 @@ async function processNextButton(buttons) {
     });
   }
 
-  // Remove highlight
-  unhighlightElement(button);
+  // Remove highlight (button ref may be stale after re-render; unhighlight is best-effort)
+  try { unhighlightElement(button); } catch (_) {}
 
   // Update progress
   extractionState.currentIndex++;
@@ -166,7 +188,7 @@ async function processNextButton(buttons) {
 
   // Continue with next button after delay
   setTimeout(() => {
-    processNextButton(buttons);
+    processNextButton(); // no buttons arg — re-queries at the top
   }, 2000);
 }
 
@@ -224,7 +246,7 @@ async function resumeExtraction() {
   }
 
   createOverlay();
-  processNextButton(buttons);
+  processNextButton(); // no buttons arg
 }
 
 function createOverlay() {
