@@ -72,7 +72,7 @@ async function startExtraction() {
     }
 
     // Find all Next Steps buttons
-    const buttons = findNextStepButtons();
+    const buttons = await collectAllPositionButtons();
     log(`Found ${buttons.length} Next Steps buttons`);
 
     if (buttons.length === 0) {
@@ -216,7 +216,12 @@ async function stopExtraction() {
 async function resumeExtraction() {
   log("Resuming interrupted extraction...");
 
-  const buttons = findNextStepButtons();
+  const buttons = await collectAllPositionButtons({
+    scrollSteps: 0,
+    showAllDelayMs: 0,
+    scrollDelayMs: 0,
+    resetDelayMs: 0,
+  });
   if (buttons.length === 0) {
     extractionState.isRunning = false;
     await saveState();

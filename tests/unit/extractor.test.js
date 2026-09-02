@@ -1,43 +1,51 @@
 const { 
   findNextStepButtons, 
+  clickShowAllAccountsLink,
+  collectAllPositionButtons,
   extractLotDetailsFromTable, 
-  processLotDetails,
   createTaxLotEntry,
   getAccountIdFromElement,
-  getSymbolFromRow
+  getSymbolFromRow,
+  triggerLotDetailsClick,
 } = require('../../lib/extractor');
 
 describe('Extractor Functions', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     jest.clearAllMocks();
+    window.scrollTo = jest.fn();
   });
 
   describe('findNextStepButtons', () => {
-    test('should find visible Next Steps buttons', () => {
-      document.body.innerHTML = `
-        <div>
-          <sdps-button sdps-name="Next Steps" style="width: 100px; height: 30px;">Button 1</sdps-button>
-          <sdps-button sdps-name="Next Steps" style="width: 100px; height: 30px;">Button 2</sdps-button>
-          <sdps-button sdps-name="Other">Other Button</sdps-button>
-        </div>
-      `;
+    test('should find visible menu-trigger Next Steps buttons', () => {
+      const mockButton1 = {
+        getBoundingClientRect: () => ({ width: 100, height: 30 }),
+      };
+      const mockButton2 = {
+        getBoundingClientRect: () => ({ width: 100, height: 30 }),
+      };
 
-      const mockButton1 = { getBoundingClientRect: () => ({ width: 100, height: 30 }) };
-      const mockButton2 = { getBoundingClientRect: () => ({ width: 100, height: 30 }) };
-      
-      document.querySelectorAll = jest.fn().mockReturnValue([mockButton1, mockButton2]);
+      document.querySelectorAll = jest.fn((selector) => {
+        if (selector === 'button[id^="menu-trigger-next-steps-"]') {
+          return [mockButton1, mockButton2];
+        }
+        return [];
+      });
 
       const buttons = findNextStepButtons();
       expect(buttons).toHaveLength(2);
-      expect(document.querySelectorAll).toHaveBeenCalledWith('sdps-button[sdps-name="Next Steps"]');
     });
 
     test('should filter out hidden buttons', () => {
       const mockVisibleButton = { getBoundingClientRect: () => ({ width: 100, height: 30 }) };
       const mockHiddenButton = { getBoundingClientRect: () => ({ width: 0, height: 0 }) };
-      
-      document.querySelectorAll = jest.fn().mockReturnValue([mockVisibleButton, mockHiddenButton]);
+
+      document.querySelectorAll = jest.fn((selector) => {
+        if (selector === 'button[id^="menu-trigger-next-steps-"]') {
+          return [mockVisibleButton, mockHiddenButton];
+        }
+        return [];
+      });
 
       const buttons = findNextStepButtons();
       expect(buttons).toHaveLength(1);
@@ -48,6 +56,52 @@ describe('Extractor Functions', () => {
 
       const buttons = findNextStepButtons();
       expect(buttons).toHaveLength(0);
+    });
+  });
+
+  describe('clickShowAllAccountsLink', () => {
+    test('clicks Show All Brokerage Accounts when present', () => {
+      const click = jest.fn();
+      document.querySelectorAll = jest.fn().mockReturnValue([{
+        textContent: 'Show All Brokerage Accounts',
+        closest: jest.fn().mockReturnValue({ click }),
+      }]);
+
+      expect(clickShowAllAccountsLink()).toBe(true);
+      expect(click).toHaveBeenCalled();
+    });
+  });
+
+  describe('collectAllPositionButtons', () => {
+    test('deduplicates buttons discovered while scrolling', async () => {
+      const button = {
+        getBoundingClientRect: () => ({ width: 10, height: 10 }),
+        closest: jest.fn((selector) => {
+          if (selector.includes('tbody')) {
+            return { id: 'holdingsAccount_12345' };
+          }
+          return { getAttribute: () => 'VT', querySelector: jest.fn() };
+        }),
+      };
+
+      document.querySelectorAll = jest.fn((selector) => {
+        if (selector === 'a, button, span') {
+          return [];
+        }
+        if (selector === 'button[id^="menu-trigger-next-steps-"]') {
+          return [button];
+        }
+        return [];
+      });
+
+      const buttons = await collectAllPositionButtons({
+        delayFn: async () => {},
+        scrollSteps: 1,
+        scrollDelayMs: 0,
+        resetDelayMs: 0,
+      });
+
+      expect(buttons).toHaveLength(1);
     });
   });
 
@@ -158,7 +212,8 @@ describe('Extractor Functions', () => {
     test('should extract symbol from row', () => {
       const mockElement = {
         closest: jest.fn().mockReturnValue({
-          getAttribute: jest.fn().mockReturnValue('AAPL')
+          getAttribute: jest.fn().mockReturnValue('AAPL'),
+          querySelector: jest.fn()
         })
       };
 
@@ -173,6 +228,19 @@ describe('Extractor Functions', () => {
 
       const symbol = getSymbolFromRow(mockElement);
       expect(symbol).toBe('unknown');
+    });
+  });
+
+  describe('triggerLotDetailsClick', () => {
+    test('clicks Lot Details in the menu when present', () => {
+      const click = jest.fn();
+      document.querySelectorAll = jest.fn().mockReturnValue([{
+        textContent: 'Lot Details',
+        closest: jest.fn().mockReturnValue({ click }),
+      }]);
+
+      expect(triggerLotDetailsClick()).toBe(true);
+      expect(click).toHaveBeenCalled();
     });
   });
 
