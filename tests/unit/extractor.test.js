@@ -1,5 +1,5 @@
 const { 
-  findNextStepButtons, 
+  findLotDetailButtons, 
   extractLotDetailsFromTable, 
   processLotDetails,
   createTaxLotEntry,
@@ -13,24 +13,16 @@ describe('Extractor Functions', () => {
     jest.clearAllMocks();
   });
 
-  describe('findNextStepButtons', () => {
-    test('should find visible Next Steps buttons', () => {
-      document.body.innerHTML = `
-        <div>
-          <sdps-button sdps-name="Next Steps" style="width: 100px; height: 30px;">Button 1</sdps-button>
-          <sdps-button sdps-name="Next Steps" style="width: 100px; height: 30px;">Button 2</sdps-button>
-          <sdps-button sdps-name="Other">Other Button</sdps-button>
-        </div>
-      `;
-
+  describe('findLotDetailButtons', () => {
+    test('should find visible Cost Basis buttons', () => {
       const mockButton1 = { getBoundingClientRect: () => ({ width: 100, height: 30 }) };
       const mockButton2 = { getBoundingClientRect: () => ({ width: 100, height: 30 }) };
       
       document.querySelectorAll = jest.fn().mockReturnValue([mockButton1, mockButton2]);
 
-      const buttons = findNextStepButtons();
+      const buttons = findLotDetailButtons();
       expect(buttons).toHaveLength(2);
-      expect(document.querySelectorAll).toHaveBeenCalledWith('sdps-button[sdps-name="Next Steps"]');
+      expect(document.querySelectorAll).toHaveBeenCalledWith('sdps-button[sdps-id="costBasisTBD"] button');
     });
 
     test('should filter out hidden buttons', () => {
@@ -39,14 +31,14 @@ describe('Extractor Functions', () => {
       
       document.querySelectorAll = jest.fn().mockReturnValue([mockVisibleButton, mockHiddenButton]);
 
-      const buttons = findNextStepButtons();
+      const buttons = findLotDetailButtons();
       expect(buttons).toHaveLength(1);
     });
 
     test('should return empty array when no buttons found', () => {
       document.querySelectorAll = jest.fn().mockReturnValue([]);
 
-      const buttons = findNextStepButtons();
+      const buttons = findLotDetailButtons();
       expect(buttons).toHaveLength(0);
     });
   });

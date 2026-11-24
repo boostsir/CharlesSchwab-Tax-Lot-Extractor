@@ -4,7 +4,7 @@ javascript:(function() {
     const taxLotData = {};
     let processedButtons = new Set();
     let currentIndex = 0;
-    let nextStepButtons = [];
+    let lotDetailButtons = [];
     
     function log(message) {
         console.log('[Tax Lot Extractor]', message);
@@ -139,38 +139,18 @@ javascript:(function() {
             return false;
         }
         
-        log(`Clicking Next Steps button for: ${symbol} in account ${accountId}`);
+        // Clicking the Cost Basis amount opens the Lot Details modal.
+        log(`Opening Lot Details for: ${symbol} in account ${accountId}`);
         button.click();
-        await delay(1500);
-        
-        const dropdown = document.getElementById('nextStepsList');
-        if (!dropdown || !dropdown.classList.contains('show')) {
-            log('Dropdown not found or not open');
-            return false;
-        }
-        
-        const lotDetailsButton = Array.from(dropdown.querySelectorAll('span')).find(span => 
-            span.textContent.trim() === 'Lot Details'
-        );
-        
-        if (!lotDetailsButton) {
-            log('Lot Details option not found');
-            button.click();
-            await delay(500);
-            return false;
-        }
-        
-        log('Clicking Lot Details option');
-        lotDetailsButton.closest('button').click();
-        
+
         const success = await processLotDetails(accountId, symbol);
         processedButtons.add(uniqueId);
         
         return success;
     }
     
-    function findNextStepButtons() {
-        const buttons = document.querySelectorAll('sdps-button[sdps-name="Next Steps"]');
+    function findLotDetailButtons() {
+        const buttons = document.querySelectorAll('sdps-button[sdps-id="costBasisTBD"] button');
         return Array.from(buttons).filter(button => {
             const rect = button.getBoundingClientRect();
             return rect.width > 0 && rect.height > 0;
@@ -178,14 +158,14 @@ javascript:(function() {
     }
     
     async function processNextButton() {
-        if (currentIndex >= nextStepButtons.length) {
+        if (currentIndex >= lotDetailButtons.length) {
             log('All buttons processed');
             displayResults();
             return;
         }
         
-        const button = nextStepButtons[currentIndex];
-        log(`Processing button ${currentIndex + 1} of ${nextStepButtons.length}`);
+        const button = lotDetailButtons[currentIndex];
+        log(`Processing button ${currentIndex + 1} of ${lotDetailButtons.length}`);
         
         try {
             await clickLotDetails(button);
@@ -237,11 +217,11 @@ javascript:(function() {
             return;
         }
         
-        nextStepButtons = findNextStepButtons();
-        log(`Found ${nextStepButtons.length} Next Steps buttons`);
+        lotDetailButtons = findLotDetailButtons();
+        log(`Found ${lotDetailButtons.length} Cost Basis buttons`);
         
-        if (nextStepButtons.length === 0) {
-            alert('No Next Steps buttons found. Make sure you are on the positions page.');
+        if (lotDetailButtons.length === 0) {
+            alert('No Cost Basis buttons found. Make sure you are on the positions page and it has finished loading.');
             return;
         }
         

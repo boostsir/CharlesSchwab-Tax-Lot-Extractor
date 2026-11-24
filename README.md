@@ -4,7 +4,7 @@ A Chrome Extension that automates the extraction of tax lot data from Charles Sc
 
 ## Features
 
-- **Automated Extraction**: Automatically clicks through all "Next Steps" buttons and extracts lot details
+- **Automated Extraction**: Automatically opens each position's Lot Details (by clicking its Cost Basis amount) and extracts the lots
 - **Progress Tracking**: Visual progress bar and status updates during extraction
 - **Resume Capability**: Can resume interrupted extractions automatically
 - **Export Options**: Export data in JSON or CSV format
