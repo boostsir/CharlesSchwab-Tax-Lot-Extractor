@@ -4,8 +4,22 @@ const {
   processLotDetails,
   createTaxLotEntry,
   getAccountIdFromElement,
-  getSymbolFromRow
+  getSymbolFromRow,
+  findLotDetailPositions,
+  findLotDetailButtonFor,
+  clickLotDetails
 } = require('../../lib/extractor');
+
+// A Cost Basis button inside a position row of an account
+const mockPositionButton = (symbol, accountId, width = 50) => ({
+  getBoundingClientRect: () => ({ width, height: 20 }),
+  click: jest.fn(),
+  closest: (selector) => {
+    if (selector.startsWith('tr')) return { getAttribute: () => symbol };
+    if (selector.startsWith('tbody')) return { id: accountId };
+    return null;
+  }
+});
 
 describe('Extractor Functions', () => {
   beforeEach(() => {
@@ -220,6 +234,58 @@ describe('Extractor Functions', () => {
 
       expect(taxLotData['holdingsAccount_12345']).toHaveLength(1);
       expect(taxLotData['holdingsAccount_12345'][0]['AAPL']).toHaveLength(2);
+    });
+  });
+
+  describe('findLotDetailPositions', () => {
+    test('should snapshot positions as account/symbol keys', () => {
+      document.querySelectorAll = jest.fn().mockReturnValue([
+        mockPositionButton('AAPL', 'holdingsAccount_1'),
+        mockPositionButton('MSFT', 'holdingsAccount_1'),
+        mockPositionButton('HIDDEN', 'holdingsAccount_1', 0)
+      ]);
+
+      expect(findLotDetailPositions()).toEqual([
+        { accountId: 'holdingsAccount_1', symbol: 'AAPL' },
+        { accountId: 'holdingsAccount_1', symbol: 'MSFT' }
+      ]);
+    });
+  });
+
+  describe('findLotDetailButtonFor', () => {
+    test('should find the current button for a position (after a re-render)', () => {
+      const freshButton = mockPositionButton('MSFT', 'holdingsAccount_2');
+      document.querySelectorAll = jest.fn().mockReturnValue([
+        mockPositionButton('MSFT', 'holdingsAccount_1'),
+        freshButton
+      ]);
+
+      expect(findLotDetailButtonFor({ accountId: 'holdingsAccount_2', symbol: 'MSFT' })).toBe(freshButton);
+    });
+
+    test('should return null when the position is not on the page', () => {
+      document.querySelectorAll = jest.fn().mockReturnValue([]);
+
+      expect(findLotDetailButtonFor({ accountId: 'holdingsAccount_1', symbol: 'AAPL' })).toBeNull();
+    });
+  });
+
+  describe('clickLotDetails', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    test('should not mark a position processed when Lot Details did not open', async () => {
+      const button = mockPositionButton('AAPL', 'holdingsAccount_1');
+      const processed = new Set();
+      document.getElementById = jest.fn().mockReturnValue(null);
+
+      const pending = clickLotDetails(button, processed);
+      await jest.advanceTimersByTimeAsync(2000);
+      const result = await pending;
+
+      expect(button.click).toHaveBeenCalled();
+      expect(result).toMatchObject({ success: false, processed: false, symbol: 'AAPL' });
+      expect(processed.size).toBe(0);
     });
   });
 });

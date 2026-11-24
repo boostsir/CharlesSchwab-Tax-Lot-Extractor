@@ -71,11 +71,11 @@ async function startExtraction() {
       return;
     }
 
-    // Find all Cost Basis buttons
-    const buttons = findLotDetailButtons();
-    log(`Found ${buttons.length} Cost Basis buttons`);
+    // Snapshot every position that has a Cost Basis button (opens Lot Details)
+    const positions = findLotDetailPositions();
+    log(`Found ${positions.length} positions with Cost Basis buttons`);
 
-    if (buttons.length === 0) {
+    if (positions.length === 0) {
       sendProgressUpdate("Error: No buttons found", 0, 0);
       return;
     }
@@ -83,7 +83,7 @@ async function startExtraction() {
     // Initialize extraction state
     extractionState.isRunning = true;
     extractionState.currentIndex = 0;
-    extractionState.totalPositions = buttons.length;
+    extractionState.totalPositions = positions.length;
     extractionState.processedButtons.clear();
     extractionState.taxLotData = {};
     extractionState.errors = [];
@@ -94,35 +94,44 @@ async function startExtraction() {
     createOverlay();
 
     // Start processing
-    sendProgressUpdate("Starting extraction...", 0, buttons.length);
-    processNextButton(buttons);
+    sendProgressUpdate("Starting extraction...", 0, positions.length);
+    processNextButton(positions);
   } catch (error) {
     log("Error starting extraction:", error);
     sendError("Failed to start extraction: " + error.message);
   }
 }
 
-async function processNextButton(buttons) {
+async function processNextButton(positions) {
   if (
     !extractionState.isRunning ||
-    extractionState.currentIndex >= buttons.length
+    extractionState.currentIndex >= positions.length
   ) {
     await completeExtraction();
     return;
   }
 
-  const button = buttons[extractionState.currentIndex];
+  const position = positions[extractionState.currentIndex];
   const currentPosition = extractionState.currentIndex + 1;
 
-  log(`Processing button ${currentPosition} of ${buttons.length}`);
-  sendProgressUpdate("Processing position...", currentPosition, buttons.length);
+  log(`Processing position ${currentPosition} of ${positions.length}`);
+  sendProgressUpdate("Processing position...", currentPosition, positions.length);
 
-  // Highlight current button
-  highlightElement(button);
-
+  let button = null;
   try {
     const result = await withRetry(async () => {
-      return await clickLotDetails(button, extractionState.processedButtons);
+      // Look the button up fresh each attempt: Schwab re-renders the table
+      // periodically, which detaches buttons found earlier.
+      button = findLotDetailButtonFor(position);
+      if (!button) {
+        throw new Error(`Cost Basis button not found for ${position.symbol}`);
+      }
+      highlightElement(button);
+      const attempt = await clickLotDetails(button, extractionState.processedButtons);
+      if (!attempt.success && !attempt.processed) {
+        throw new Error(`Lot Details did not open for ${position.symbol}`);
+      }
+      return attempt;
     });
 
     if (result.success && result.lots) {
@@ -135,30 +144,20 @@ async function processNextButton(buttons) {
       log(
         `Successfully extracted ${result.lots.length} lots for ${result.symbol}`
       );
-    } else if (!result.processed) {
-      // Add to errors if it wasn't already processed
-      extractionState.errors.push({
-        timestamp: new Date().toISOString(),
-        accountId: result.accountId || "unknown",
-        symbol: result.symbol || "unknown",
-        error: "Failed to extract lot details",
-      });
     }
   } catch (error) {
-    log(`Error processing button ${currentPosition}:`, error);
-    const symbol = getSymbolFromRow(button);
-    const accountId = getAccountIdFromElement(button);
-
+    log(`Error processing position ${currentPosition}:`, error);
     extractionState.errors.push({
       timestamp: new Date().toISOString(),
-      accountId: accountId,
-      symbol: symbol,
+      accountId: position.accountId,
+      symbol: position.symbol,
       error: error.message,
     });
   }
 
-  // Remove highlight
-  unhighlightElement(button);
+  if (button) {
+    unhighlightElement(button);
+  }
 
   // Update progress
   extractionState.currentIndex++;
@@ -166,7 +165,7 @@ async function processNextButton(buttons) {
 
   // Continue with next button after delay
   setTimeout(() => {
-    processNextButton(buttons);
+    processNextButton(positions);
   }, 2000);
 }
 
@@ -216,15 +215,15 @@ async function stopExtraction() {
 async function resumeExtraction() {
   log("Resuming interrupted extraction...");
 
-  const buttons = findLotDetailButtons();
-  if (buttons.length === 0) {
+  const positions = findLotDetailPositions();
+  if (positions.length === 0) {
     extractionState.isRunning = false;
     await saveState();
     return;
   }
 
   createOverlay();
-  processNextButton(buttons);
+  processNextButton(positions);
 }
 
 function createOverlay() {

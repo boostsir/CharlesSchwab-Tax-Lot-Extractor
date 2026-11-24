@@ -4,7 +4,9 @@ javascript:(function() {
     const taxLotData = {};
     let processedButtons = new Set();
     let currentIndex = 0;
-    let lotDetailButtons = [];
+    let positions = [];
+    const failedPositions = [];
+    const MAX_ATTEMPTS = 3;
     
     function log(message) {
         console.log('[Tax Lot Extractor]', message);
@@ -144,9 +146,18 @@ javascript:(function() {
         button.click();
 
         const success = await processLotDetails(accountId, symbol);
-        processedButtons.add(uniqueId);
+        if (success) {
+            processedButtons.add(uniqueId);
+        }
         
         return success;
+    }
+    
+    function closeLotOverlayIfOpen() {
+        const overlay = document.getElementById('open-lot-overlay');
+        if (overlay && overlay.classList.contains('sdps-modal--open')) {
+            overlay.querySelector('.sdps-modal__close')?.click();
+        }
     }
     
     function findLotDetailButtons() {
@@ -157,20 +168,54 @@ javascript:(function() {
         });
     }
     
+    // Schwab periodically re-renders the positions table, detaching every
+    // button found earlier. Snapshot positions as keys and look each button
+    // up again right before clicking it.
+    function positionKey(button) {
+        const row = button.closest('tr[data-symbol]');
+        const accountContainer = button.closest('tbody[id*="holdingsAccount_"]');
+        return {
+            symbol: row ? row.getAttribute('data-symbol') : 'unknown',
+            accountId: accountContainer ? accountContainer.id : 'holdingsAccount_unknown'
+        };
+    }
+    
+    function findButtonFor(position) {
+        return findLotDetailButtons().find(button => {
+            const key = positionKey(button);
+            return key.symbol === position.symbol && key.accountId === position.accountId;
+        }) || null;
+    }
+    
     async function processNextButton() {
-        if (currentIndex >= lotDetailButtons.length) {
-            log('All buttons processed');
+        if (currentIndex >= positions.length) {
+            log('All positions processed');
             displayResults();
             return;
         }
         
-        const button = lotDetailButtons[currentIndex];
-        log(`Processing button ${currentIndex + 1} of ${lotDetailButtons.length}`);
+        const position = positions[currentIndex];
+        log(`Processing position ${currentIndex + 1} of ${positions.length}: ${position.symbol}`);
         
-        try {
-            await clickLotDetails(button);
-        } catch (error) {
-            log(`Error processing button ${currentIndex}: ${error.message}`);
+        let success = false;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS && !success; attempt++) {
+            try {
+                const button = findButtonFor(position);
+                if (!button) {
+                    log(`Cost Basis button not found for ${position.symbol} (attempt ${attempt})`);
+                } else {
+                    success = await clickLotDetails(button);
+                }
+            } catch (error) {
+                log(`Error processing ${position.symbol}: ${error.message}`);
+            }
+            if (!success) {
+                closeLotOverlayIfOpen();
+                await delay(2000);
+            }
+        }
+        if (!success) {
+            failedPositions.push(position.symbol);
         }
         
         currentIndex++;
@@ -206,7 +251,10 @@ javascript:(function() {
             });
         });
         
-        alert(`Extraction complete! Found ${totalSymbols} symbols across ${accounts.length} accounts with ${totalPositions} total lot entries. Data saved to schwab-tax-lots.json`);
+        const failedNote = failedPositions.length
+            ? `\n\nCould not read Lot Details for: ${failedPositions.join(', ')}`
+            : '';
+        alert(`Extraction complete! Found ${totalSymbols} symbols across ${accounts.length} accounts with ${totalPositions} total lot entries. Data saved to schwab-tax-lots.json${failedNote}`);
     }
     
     function init() {
@@ -217,10 +265,10 @@ javascript:(function() {
             return;
         }
         
-        lotDetailButtons = findLotDetailButtons();
-        log(`Found ${lotDetailButtons.length} Cost Basis buttons`);
+        positions = findLotDetailButtons().map(positionKey);
+        log(`Found ${positions.length} positions with Cost Basis buttons`);
         
-        if (lotDetailButtons.length === 0) {
+        if (positions.length === 0) {
             alert('No Cost Basis buttons found. Make sure you are on the positions page and it has finished loading.');
             return;
         }
